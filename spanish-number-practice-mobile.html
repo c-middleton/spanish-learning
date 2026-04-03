@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Spanish Number Practice</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 900px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.6rem, 4vw, 2rem);
+      line-height: 1.1;
+    }
+
+    .sub {
+      margin: 0 0 20px;
+      color: #475569;
+      line-height: 1.45;
+      font-size: 0.98rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .audio-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+      align-items: stretch;
+    }
+
+    .field, .checkbox-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .checkbox-card {
+      justify-content: center;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 18px;
+      padding: 14px 16px;
+      min-height: 78px;
+    }
+
+    .checkbox-inline {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      min-height: 48px;
+    }
+
+    .voice-card {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 18px;
+      padding: 14px 16px;
+      min-height: 78px;
+      justify-content: center;
+    }
+
+    .voice-card select {
+      min-height: 48px;
+    }
+
+    label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    input[type="number"], select, button {
+      font: inherit;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 18px;
+      background: white;
+    }
+
+    button {
+      border: 0;
+      border-radius: 18px;
+      padding: 14px 18px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .primary {
+      background: #0f172a;
+      color: white;
+    }
+
+    .secondary {
+      background: white;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+    }
+
+    .display {
+      min-height: 280px;
+      border-radius: 24px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 44px 20px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #mainDisplay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: calc(100% - 36px);
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin: 0;
+    }
+
+    #replayWrap {
+      position: absolute;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      margin: 0;
+      width: max-content;
+      max-width: calc(100% - 120px);
+    }
+
+    .phase {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 180px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      line-height: 1;
+      margin: 0;
+      padding: 0;
+    }
+
+    .big-number {
+      font-size: clamp(3rem, 13vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .big-word {
+      font-size: clamp(2rem, 8vw, 3rem);
+      font-weight: 600;
+      line-height: 1.2;
+      text-align: center;
+      max-width: 800px;
+      word-break: break-word;
+    }
+
+    .replay-wrap {
+      margin-top: 22px;
+      position: static;
+    }
+
+    .display-control-corner {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      z-index: 2;
+    }
+
+    .display-control-corner-left {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      z-index: 2;
+    }
+
+    .icon-button {
+      width: 52px;
+      height: 52px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      color: #0f172a;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      padding: 0;
+    }
+
+    .icon-button:hover {
+      background: #f8fafc;
+    }
+
+    .icon-button svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+      display: block;
+    }
+
+    #reverseBtn svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .badge {
+      padding: 10px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 999px;
+      color: #475569;
+      font-size: 0.92rem;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 10px;
+        align-items: stretch;
+      }
+
+      .app {
+        padding: 16px;
+        border-radius: 20px;
+      }
+
+      .controls,
+      .audio-row {
+        grid-template-columns: 1fr;
+      }
+
+      .sub {
+        margin-bottom: 16px;
+        font-size: 0.95rem;
+      }
+
+      .display {
+        min-height: 240px;
+        padding: 42px 14px 18px;
+        border-radius: 20px;
+      }
+
+      #mainDisplay {
+        width: calc(100% - 24px);
+      }
+
+      .phase {
+        top: 12px;
+        font-size: 0.7rem;
+        width: 170px;
+      }
+
+      .display-control-corner,
+      .display-control-corner-left {
+        bottom: 12px;
+      }
+
+      .display-control-corner {
+        right: 12px;
+      }
+
+      .display-control-corner-left {
+        left: 12px;
+      }
+
+      .icon-button {
+        width: 48px;
+        height: 48px;
+      }
+
+      .secondary,
+      .primary,
+      input[type="number"],
+      select {
+        min-height: 48px;
+      }
+
+      .badges {
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .badge {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+      }
+
+      #replayWrap {
+        bottom: 12px;
+        max-width: calc(100% - 104px);
+      }
+    }
+
+    @media (max-width: 420px) {
+      body {
+        padding: 8px;
+      }
+
+      .app {
+        padding: 14px;
+      }
+
+      h1 {
+        font-size: 1.45rem;
+      }
+
+      .display {
+        min-height: 220px;
+      }
+
+      .big-number {
+        font-size: clamp(2.5rem, 14vw, 3.4rem);
+      }
+
+      .big-word {
+        font-size: clamp(1.55rem, 8vw, 2.2rem);
+      }
+
+      .badge {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Spanish Number Practice</h1>
+    <p class="sub" id="topDescription">Shows a random number for 5 seconds, then the Spanish word for 3 seconds, then repeats automatically.</p>
+
+    <div style="margin: -8px 0 24px;">
+      <a href="#" id="showOptionsLink" style="color: #0f172a; font-weight: 600; text-decoration: underline;">Show Options</a>
+      <a href="#" id="hideOptionsLink" style="color: #0f172a; font-weight: 600; text-decoration: underline; display: none;">Hide Options</a>
+    </div>
+
+    <div id="optionsPanel" style="display: none;">
+      <div class="controls">
+        <div class="field">
+          <label for="minInput">Minimum</label>
+          <input id="minInput" type="number" min="0" max="999999" value="0" />
+        </div>
+
+        <div class="field">
+          <label for="maxInput">Maximum</label>
+          <input id="maxInput" type="number" min="0" max="999999" value="100" />
+        </div>
+
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="newNumberBtn" class="primary">New Number</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <label for="numberDurationInput">Number duration (seconds)</label>
+          <input id="numberDurationInput" type="number" min="1" max="60" step="0.5" value="5" />
+        </div>
+
+        <div class="field">
+          <label for="wordDurationInput">Spanish duration (seconds)</label>
+          <input id="wordDurationInput" type="number" min="1" max="60" step="0.5" value="3" />
+        </div>
+
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="applyTimingBtn" class="secondary">Apply timing</button>
+        </div>
+      </div>
+
+      <div class="audio-row">
+        <label class="checkbox-card">
+          <span>Pronunciation</span>
+          <span class="checkbox-inline">
+            <input id="audioToggle" type="checkbox" checked />
+            <span>Play pronunciation automatically</span>
+          </span>
+        </label>
+
+        <div class="field voice-card">
+          <label for="voiceSelect">Voice</label>
+          <select id="voiceSelect">
+            <option value="">Loading voices...</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="display" id="displayBox">
+      <div id="phaseLabel" class="phase">Start</div>
+      <div id="mainDisplay" class="big-word">Click to start<br>Haz clic para empezar</div>
+      <div class="replay-wrap" id="replayWrap" style="display:none;">
+        <button id="replayBtn" class="secondary">Replay audio</button>
+      </div>
+      <div class="display-control-corner-left">
+        <button id="reverseBtn" class="icon-button" aria-label="Reverse order">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 7a5 5 0 0 1 8.66-2H13v2h6V1h-2v2.34A7 7 0 0 0 5 7h2zm10 10a5 5 0 0 1-8.66 2H11v-2H5v6h2v-2.34A7 7 0 0 0 19 17h-2z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="display-control-corner">
+        <button id="pausePlayBtn" class="icon-button" aria-label="Pause">
+          <svg id="pausePlayIcon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="6" y="5" width="4" height="14" rx="1"></rect>
+            <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="optionsMeta">
+      <div class="badges">
+        <div class="badge" id="numberDurationBadge">5s number</div>
+        <div class="badge" id="wordDurationBadge">3s Spanish</div>
+        <div class="badge" id="rangeBadge">Current range: 0–100</div>
+        <div class="badge" id="audioBadge">Audio: On</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      © Señor Mids <span id="year"></span>
+    </div>
+  </div>
+
+  <script>
+    const minInput = document.getElementById('minInput');
+    const maxInput = document.getElementById('maxInput');
+    const newNumberBtn = document.getElementById('newNumberBtn');
+    const reverseBtn = document.getElementById('reverseBtn');
+    const pausePlayBtn = document.getElementById('pausePlayBtn');
+    const numberDurationInput = document.getElementById('numberDurationInput');
+    const wordDurationInput = document.getElementById('wordDurationInput');
+    const applyTimingBtn = document.getElementById('applyTimingBtn');
+    const audioToggle = document.getElementById('audioToggle');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const phaseLabel = document.getElementById('phaseLabel');
+    const mainDisplay = document.getElementById('mainDisplay');
+    const replayWrap = document.getElementById('replayWrap');
+    const replayBtn = document.getElementById('replayBtn');
+    const rangeBadge = document.getElementById('rangeBadge');
+    const numberDurationBadge = document.getElementById('numberDurationBadge');
+    const wordDurationBadge = document.getElementById('wordDurationBadge');
+    const audioBadge = document.getElementById('audioBadge');
+    const topDescription = document.getElementById('topDescription');
+    const showOptionsLink = document.getElementById('showOptionsLink');
+    const hideOptionsLink = document.getElementById('hideOptionsLink');
+    const optionsPanel = document.getElementById('optionsPanel');
+    const optionsMeta = document.getElementById('optionsMeta');
+    const displayBox = document.getElementById('displayBox');
+
+    let currentNumber = 50;
+    let phase = 'idle';
+    let timer = null;
+    let isPaused = false;
+    let hasStarted = false;
+    let isReversed = false;
+    let spanishVoices = [];
+    let audioUnlocked = false;
+    let pendingSpeechText = null;
+
+    function numberToSpanish(n) {
+      const units = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
+      const specials = {
+        10: 'diez', 11: 'once', 12: 'doce', 13: 'trece', 14: 'catorce', 15: 'quince',
+        16: 'dieciséis', 17: 'diecisiete', 18: 'dieciocho', 19: 'diecinueve',
+        20: 'veinte', 21: 'veintiuno', 22: 'veintidós', 23: 'veintitrés', 24: 'veinticuatro',
+        25: 'veinticinco', 26: 'veintiséis', 27: 'veintisiete', 28: 'veintiocho', 29: 'veintinueve'
+      };
+      const tens = {30:'treinta',40:'cuarenta',50:'cincuenta',60:'sesenta',70:'setenta',80:'ochenta',90:'noventa'};
+      const hundreds = {100:'cien',200:'doscientos',300:'trescientos',400:'cuatrocientos',500:'quinientos',600:'seiscientos',700:'setecientos',800:'ochocientos',900:'novecientos'};
+
+      if (n < 10) return units[n];
+      if (specials[n]) return specials[n];
+      if (n < 100) {
+        const ten = Math.floor(n / 10) * 10;
+        const unit = n % 10;
+        if (unit === 0) return tens[ten];
+        return `${tens[ten]} y ${units[unit]}`;
+      }
+      if (n === 100) return 'cien';
+      if (n < 200) return `ciento ${numberToSpanish(n - 100)}`;
+      if (hundreds[n]) return hundreds[n];
+      if (n < 1000) {
+        const hundred = Math.floor(n / 100) * 100;
+        const rest = n % 100;
+        return `${hundreds[hundred]} ${numberToSpanish(rest)}`;
+      }
+      if (n === 1000) return 'mil';
+      if (n < 2000) return `mil ${numberToSpanish(n - 1000)}`;
+      if (n < 1000000) {
+        const thousands = Math.floor(n / 1000);
+        const rest = n % 1000;
+        const thousandText = `${numberToSpanish(thousands)} mil`;
+        return rest === 0 ? thousandText : `${thousandText} ${numberToSpanish(rest)}`;
+      }
+      return String(n);
+    }
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function getRange() {
+      let min = Number(minInput.value);
+      let max = Number(maxInput.value);
+      if (Number.isNaN(min)) min = 0;
+      if (Number.isNaN(max)) max = 100;
+      min = Math.max(0, Math.min(min, 999999));
+      max = Math.max(0, Math.min(max, 999999));
+      if (min > max) [min, max] = [max, min];
+      minInput.value = min;
+      maxInput.value = max;
+      rangeBadge.textContent = `Current range: ${min}–${max}`;
+      return { min, max };
+    }
+
+    function getDurations() {
+      let numberSeconds = Number(numberDurationInput.value);
+      let wordSeconds = Number(wordDurationInput.value);
+      if (Number.isNaN(numberSeconds)) numberSeconds = 5;
+      if (Number.isNaN(wordSeconds)) wordSeconds = 3;
+      numberSeconds = Math.max(1, Math.min(numberSeconds, 60));
+      wordSeconds = Math.max(1, Math.min(wordSeconds, 60));
+      numberDurationInput.value = numberSeconds;
+      wordDurationInput.value = wordSeconds;
+      return {
+        numberSeconds,
+        wordSeconds,
+        numberMs: Math.round(numberSeconds * 1000),
+        wordMs: Math.round(wordSeconds * 1000)
+      };
+    }
+
+    function refreshDurationUI() {
+      const d = getDurations();
+      numberDurationBadge.textContent = `${d.numberSeconds}s number`;
+      wordDurationBadge.textContent = `${d.wordSeconds}s Spanish`;
+      topDescription.textContent = `Shows a random number for ${d.numberSeconds} seconds, then the Spanish word for ${d.wordSeconds} seconds, then repeats automatically.`;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function selectPreferredVoice() {
+      if (!spanishVoices.length) return null;
+      return spanishVoices.find(v => v.name === 'Google español de Estados Unidos (es-US)')
+        || spanishVoices.find(v => v.name === 'Google español de Estados Unidos' && v.lang === 'es-US')
+        || spanishVoices.find(v => v.lang === 'es-US' && v.name.toLowerCase().includes('google'))
+        || spanishVoices.find(v => v.lang === 'es-US')
+        || spanishVoices.find(v => v.name.toLowerCase().includes('google'))
+        || spanishVoices[0];
+    }
+
+    function getSelectedVoice() {
+      const name = voiceSelect.value;
+      return spanishVoices.find(v => v.name === name) || selectPreferredVoice();
+    }
+
+    function populateVoices() {
+      if (!('speechSynthesis' in window)) {
+        voiceSelect.innerHTML = '<option value="">Speech not supported</option>';
+        voiceSelect.disabled = true;
+        audioBadge.textContent = 'Audio: Not supported';
+        return;
+      }
+
+      const voices = window.speechSynthesis.getVoices() || [];
+      spanishVoices = voices.filter(v => v.lang && v.lang.toLowerCase().includes('es'));
+
+      if (!voices.length) {
+        voiceSelect.innerHTML = '<option value="">Loading voices...</option>';
+        voiceSelect.disabled = true;
+        audioBadge.textContent = audioToggle.checked ? 'Audio: Loading...' : 'Audio: Off';
+        return;
+      }
+
+      if (!spanishVoices.length) {
+        voiceSelect.innerHTML = '<option value="">No Spanish voice detected</option>';
+        voiceSelect.disabled = true;
+        audioBadge.textContent = audioToggle.checked ? 'Audio: No Spanish voice found' : 'Audio: Off';
+        return;
+      }
+
+      voiceSelect.disabled = false;
+      voiceSelect.innerHTML = spanishVoices.map(v => `<option value="${escapeHtml(v.name)}">${escapeHtml(v.name)} (${escapeHtml(v.lang)})</option>`).join('');
+      const preferred = selectPreferredVoice();
+      if (preferred) voiceSelect.value = preferred.name;
+      updateAudioBadge();
+    }
+
+    function updateAudioBadge() {
+      if (!('speechSynthesis' in window)) {
+        audioBadge.textContent = 'Audio: Not supported';
+        return;
+      }
+      if (!audioUnlocked) {
+        audioBadge.textContent = audioToggle.checked ? 'Audio: On' : 'Audio: Off';
+        return;
+      }
+      if (!spanishVoices.length) {
+        audioBadge.textContent = audioToggle.checked ? 'Audio: Loading...' : 'Audio: Off';
+        return;
+      }
+      audioBadge.textContent = audioToggle.checked ? 'Audio: On' : 'Audio: Off';
+    }
+
+    function updatePausePlayButton() {
+      pausePlayBtn.setAttribute('aria-label', isPaused ? 'Play' : 'Pause');
+      pausePlayBtn.innerHTML = isPaused
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"></path></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>';
+    }
+
+    function render() {
+      if (phase === 'idle') {
+        phaseLabel.textContent = 'START';
+        mainDisplay.className = 'big-word';
+        mainDisplay.innerHTML = `
+  <div style="display:flex; flex-direction:column; align-items:center; line-height:1.2;">
+    <div>Haz clic para empezar</div>
+    <div style="font-size: 0.5em; font-weight: 500; margin-top: 8px;">Click to start</div>
+  </div>
+`;
+        replayWrap.style.display = 'none';
+        displayBox.style.cursor = 'pointer';
+      } else {
+        const showSpanish = isReversed ? phase === 'number' : phase === 'word';
+
+        if (!showSpanish) {
+          phaseLabel.textContent = 'NUMBER';
+          mainDisplay.className = 'big-number';
+          mainDisplay.textContent = currentNumber;
+          replayWrap.style.display = 'none';
+        } else {
+          phaseLabel.textContent = 'SPANISH';
+          mainDisplay.className = 'big-word';
+          mainDisplay.textContent = numberToSpanish(currentNumber);
+          replayWrap.style.display = 'block';
+          if (audioToggle.checked) {
+            queueSpeech(numberToSpanish(currentNumber));
+          }
+        }
+
+        displayBox.style.cursor = 'default';
+      }
+    }
+
+    function clearCycle() {
+      if (timer) clearTimeout(timer);
+      if ('speechSynthesis' in window && audioUnlocked) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    function queueSpeech(text) {
+      pendingSpeechText = text;
+      if (!audioUnlocked) return;
+      playPendingSpeech();
+    }
+
+    function playPendingSpeech() {
+      if (!audioUnlocked || !audioToggle.checked || isPaused) return;
+      const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
+      if (!spanishPhaseNow || !pendingSpeechText) return;
+      if (!('speechSynthesis' in window) || !spanishVoices.length) return;
+
+      const text = pendingSpeechText;
+      const voice = getSelectedVoice();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = voice?.lang || 'es-US';
+      utterance.rate = 0.9;
+      if (voice) utterance.voice = voice;
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+      pendingSpeechText = null;
+    }
+
+    function runCycle() {
+      clearCycle();
+      render();
+      if (isPaused || phase === 'idle') return;
+      const d = getDurations();
+      const delay = phase === 'number' ? d.numberMs : d.wordMs;
+      timer = setTimeout(() => {
+        if (phase === 'number') {
+          phase = 'word';
+        } else {
+          const { min, max } = getRange();
+          currentNumber = getRandomInt(min, max);
+          phase = 'number';
+        }
+        runCycle();
+      }, delay);
+    }
+
+    function startNewRound() {
+      const { min, max } = getRange();
+      currentNumber = getRandomInt(min, max);
+      phase = 'number';
+      isPaused = false;
+      hasStarted = true;
+      updatePausePlayButton();
+      runCycle();
+    }
+
+    function unlockAudio() {
+      if (!('speechSynthesis' in window) || audioUnlocked) return;
+      audioUnlocked = true;
+      try {
+        const warmup = new SpeechSynthesisUtterance(' ');
+        warmup.volume = 0;
+        window.speechSynthesis.speak(warmup);
+      } catch (e) {}
+      updateAudioBadge();
+      setTimeout(playPendingSpeech, 100);
+    }
+
+    minInput.addEventListener('change', getRange);
+    maxInput.addEventListener('change', getRange);
+    numberDurationInput.addEventListener('change', refreshDurationUI);
+    wordDurationInput.addEventListener('change', refreshDurationUI);
+
+    newNumberBtn.addEventListener('click', () => {
+      unlockAudio();
+      startNewRound();
+    });
+
+    reverseBtn.addEventListener('click', () => {
+      isReversed = !isReversed;
+      if (hasStarted && !isPaused) {
+        clearCycle();
+        render();
+        const d = getDurations();
+        const delay = phase === 'number' ? d.numberMs : d.wordMs;
+        timer = setTimeout(() => {
+          if (phase === 'number') {
+            phase = 'word';
+          } else {
+            const { min, max } = getRange();
+            currentNumber = getRandomInt(min, max);
+            phase = 'number';
+          }
+          runCycle();
+        }, delay);
+      } else {
+        render();
+      }
+    });
+
+    pausePlayBtn.addEventListener('click', () => {
+      unlockAudio();
+
+      if (!hasStarted) {
+        startNewRound();
+        return;
+      }
+
+      isPaused = !isPaused;
+      updatePausePlayButton();
+      if (isPaused) {
+        clearCycle();
+        render();
+      } else {
+        runCycle();
+      }
+    });
+
+    applyTimingBtn.addEventListener('click', () => {
+      unlockAudio();
+      refreshDurationUI();
+      if (hasStarted) runCycle();
+    });
+
+    audioToggle.addEventListener('change', () => {
+      unlockAudio();
+      updateAudioBadge();
+      if (!audioToggle.checked && 'speechSynthesis' in window) {
+        pendingSpeechText = null;
+        window.speechSynthesis.cancel();
+      } else {
+        const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
+        if (spanishPhaseNow) {
+          queueSpeech(numberToSpanish(currentNumber));
+        }
+      }
+    });
+
+    replayBtn.addEventListener('click', () => {
+      unlockAudio();
+      const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
+      if (spanishPhaseNow) {
+        queueSpeech(numberToSpanish(currentNumber));
+      }
+    });
+
+    voiceSelect.addEventListener('change', () => {
+      unlockAudio();
+      const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
+      if (spanishPhaseNow && audioToggle.checked) {
+        queueSpeech(numberToSpanish(currentNumber));
+      }
+    });
+
+    showOptionsLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      optionsPanel.style.display = 'block';
+      showOptionsLink.style.display = 'none';
+      hideOptionsLink.style.display = 'inline';
+    });
+
+    hideOptionsLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      optionsPanel.style.display = 'none';
+      showOptionsLink.style.display = 'inline';
+      hideOptionsLink.style.display = 'none';
+    });
+
+    displayBox.addEventListener('click', () => {
+      if (!hasStarted) {
+        unlockAudio();
+        startNewRound();
+      }
+    });
+
+    document.addEventListener('pointerdown', unlockAudio, { once: true });
+    document.addEventListener('keydown', unlockAudio, { once: true });
+    document.addEventListener('touchstart', unlockAudio, { once: true });
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = populateVoices;
+      populateVoices();
+      setTimeout(populateVoices, 250);
+      setTimeout(populateVoices, 1000);
+      setTimeout(populateVoices, 2000);
+    } else {
+      populateVoices();
+    }
+
+    refreshDurationUI();
+    updatePausePlayButton();
+    render();
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
