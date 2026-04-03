@@ -338,13 +338,14 @@
       }
 
       .badges {
-        gap: 8px;
-        margin-top: 16px;
+        gap: 6px;
+        margin-top: 12px;
       }
 
       .badge {
-        font-size: 0.85rem;
-        padding: 8px 12px;
+        font-size: 0.78rem;
+        padding: 5px 9px;
+        line-height: 1;
       }
 
       #replayWrap {
@@ -508,7 +509,6 @@
     const showOptionsLink = document.getElementById('showOptionsLink');
     const hideOptionsLink = document.getElementById('hideOptionsLink');
     const optionsPanel = document.getElementById('optionsPanel');
-    const optionsMeta = document.getElementById('optionsMeta');
     const displayBox = document.getElementById('displayBox');
 
     let currentNumber = 50;
@@ -520,6 +520,8 @@
     let spanishVoices = [];
     let audioUnlocked = false;
     let pendingSpeechText = null;
+    let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     function numberToSpanish(n) {
       const units = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
@@ -662,6 +664,10 @@
         audioBadge.textContent = 'Audio: Not supported';
         return;
       }
+      if (isIOS) {
+        audioBadge.textContent = audioToggle.checked ? 'Audio: Tap to play' : 'Audio: Off';
+        return;
+      }
       if (!audioUnlocked) {
         audioBadge.textContent = audioToggle.checked ? 'Audio: On' : 'Audio: Off';
         return;
@@ -705,7 +711,7 @@
           mainDisplay.className = 'big-word';
           mainDisplay.textContent = numberToSpanish(currentNumber);
           replayWrap.style.display = 'block';
-          if (audioToggle.checked) {
+          if (audioToggle.checked && !isIOS) {
             queueSpeech(numberToSpanish(currentNumber));
           }
         }
@@ -723,20 +729,21 @@
 
     function queueSpeech(text) {
       pendingSpeechText = text;
-      if (!audioUnlocked) return;
+      if (!audioUnlocked && !isIOS) return;
       playPendingSpeech();
     }
 
     function playPendingSpeech() {
-      if (!audioUnlocked || !audioToggle.checked || isPaused) return;
+      if ((!audioUnlocked && !isIOS) || !audioToggle.checked || isPaused) return;
+
       const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
       if (!spanishPhaseNow || !pendingSpeechText) return;
-      if (!('speechSynthesis' in window) || !spanishVoices.length) return;
+      if (!('speechSynthesis' in window)) return;
 
       const text = pendingSpeechText;
       const voice = getSelectedVoice();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = voice?.lang || 'es-US';
+      utterance.lang = voice?.lang || 'es-ES';
       utterance.rate = 0.9;
       if (voice) utterance.voice = voice;
 
@@ -777,12 +784,18 @@
       if (!('speechSynthesis' in window) || audioUnlocked) return;
       audioUnlocked = true;
       try {
-        const warmup = new SpeechSynthesisUtterance(' ');
-        warmup.volume = 0;
+        const voice = getSelectedVoice();
+        const warmup = new SpeechSynthesisUtterance('hola');
+        warmup.lang = voice?.lang || 'es-ES';
+        warmup.rate = 0.9;
+        warmup.volume = 0.01;
+        if (voice) warmup.voice = voice;
+
+        window.speechSynthesis.cancel();
         window.speechSynthesis.speak(warmup);
       } catch (e) {}
       updateAudioBadge();
-      setTimeout(playPendingSpeech, 100);
+      setTimeout(playPendingSpeech, 150);
     }
 
     minInput.addEventListener('change', getRange);
@@ -847,11 +860,6 @@
       if (!audioToggle.checked && 'speechSynthesis' in window) {
         pendingSpeechText = null;
         window.speechSynthesis.cancel();
-      } else {
-        const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
-        if (spanishPhaseNow) {
-          queueSpeech(numberToSpanish(currentNumber));
-        }
       }
     });
 
@@ -859,14 +867,15 @@
       unlockAudio();
       const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
       if (spanishPhaseNow) {
-        queueSpeech(numberToSpanish(currentNumber));
+        pendingSpeechText = numberToSpanish(currentNumber);
+        playPendingSpeech();
       }
     });
 
     voiceSelect.addEventListener('change', () => {
       unlockAudio();
       const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
-      if (spanishPhaseNow && audioToggle.checked) {
+      if (spanishPhaseNow && audioToggle.checked && !isIOS) {
         queueSpeech(numberToSpanish(currentNumber));
       }
     });
