@@ -752,6 +752,22 @@
       pendingSpeechText = null;
     }
 
+    function speakDirect(text) {
+      if (!('speechSynthesis' in window)) return;
+
+      try {
+        const voice = getSelectedVoice();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = voice?.lang || 'es-ES';
+        utterance.rate = 0.9;
+        utterance.volume = 1;
+        if (voice) utterance.voice = voice;
+
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {}
+    }
+
     function runCycle() {
       clearCycle();
       render();
@@ -783,17 +799,21 @@
     function unlockAudio() {
       if (!('speechSynthesis' in window) || audioUnlocked) return;
       audioUnlocked = true;
-      try {
-        const voice = getSelectedVoice();
-        const warmup = new SpeechSynthesisUtterance('hola');
-        warmup.lang = voice?.lang || 'es-ES';
-        warmup.rate = 0.9;
-        warmup.volume = 0.01;
-        if (voice) warmup.voice = voice;
 
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(warmup);
-      } catch (e) {}
+      if (!isIOS) {
+        try {
+          const voice = getSelectedVoice();
+          const warmup = new SpeechSynthesisUtterance('hola');
+          warmup.lang = voice?.lang || 'es-ES';
+          warmup.rate = 0.9;
+          warmup.volume = 0.01;
+          if (voice) warmup.voice = voice;
+
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(warmup);
+        } catch (e) {}
+      }
+
       updateAudioBadge();
       setTimeout(playPendingSpeech, 150);
     }
@@ -914,6 +934,15 @@
     displayBox.addEventListener('click', () => {
       if (!hasStarted) {
         unlockAudio();
+
+        if (isIOS && audioToggle.checked) {
+          speakDirect('hola');
+          setTimeout(() => {
+            startNewRound();
+          }, 350);
+          return;
+        }
+
         startNewRound();
       }
     });
