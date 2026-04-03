@@ -864,20 +864,37 @@
     });
 
     replayBtn.addEventListener('click', () => {
-      unlockAudio();
       const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
-      if (spanishPhaseNow) {
-        pendingSpeechText = numberToSpanish(currentNumber);
-        playPendingSpeech();
-      }
+      if (!spanishPhaseNow || !audioToggle.checked || !('speechSynthesis' in window)) return;
+
+      try {
+        const text = numberToSpanish(currentNumber);
+        const voice = getSelectedVoice();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = voice?.lang || 'es-ES';
+        utterance.rate = 0.9;
+        if (voice) utterance.voice = voice;
+
+        pendingSpeechText = null;
+        audioUnlocked = true;
+        updateAudioBadge();
+
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {}
     });
 
     voiceSelect.addEventListener('change', () => {
       unlockAudio();
       const spanishPhaseNow = isReversed ? phase === 'number' : phase === 'word';
-      if (spanishPhaseNow && audioToggle.checked && !isIOS) {
-        queueSpeech(numberToSpanish(currentNumber));
+
+      if (!audioToggle.checked || !spanishPhaseNow) return;
+
+      if (isIOS) {
+        return;
       }
+
+      queueSpeech(numberToSpanish(currentNumber));
     });
 
     showOptionsLink.addEventListener('click', (e) => {
