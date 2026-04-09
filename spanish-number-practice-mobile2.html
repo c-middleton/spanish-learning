@@ -685,8 +685,18 @@
 
       voiceSelect.disabled = false;
       voiceSelect.innerHTML = spanishVoices.map(v => `<option value="${escapeHtml(v.name)}">${escapeHtml(v.name)} (${escapeHtml(v.lang)})</option>`).join('');
-      const preferred = selectPreferredVoice();
-      if (preferred) voiceSelect.value = preferred.name;
+      let preferred;
+
+if (isIOS) {
+  preferred =
+    spanishVoices.find(v => v.name.includes('Paulina') && v.lang === 'es-MX') ||
+    spanishVoices.find(v => v.name.includes('Paulina')) ||
+    selectPreferredVoice();
+} else {
+  preferred = selectPreferredVoice();
+}
+
+if (preferred) voiceSelect.value = preferred.name;
       updateAudioBadge();
     }
 
