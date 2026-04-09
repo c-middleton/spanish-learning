@@ -843,6 +843,12 @@
       } catch (e) {}
     }
 
+    function primeAudioLikeReplay() {
+      if (!audioToggle.checked || !('speechSynthesis' in window)) return;
+      pendingSpeechText = null;
+      speakDirect(getCurrentSpanishText());
+    }
+
     function runCycle() {
       clearCycle();
       render();
@@ -882,6 +888,7 @@
       markUserGesture();
       unlockAudio();
       startNewRound();
+      primeAudioLikeReplay();
     });
 
     reverseBtn.addEventListener('click', () => {
@@ -916,6 +923,7 @@
 
       if (!hasStarted) {
         startNewRound();
+        primeAudioLikeReplay();
         return;
       }
 
@@ -986,6 +994,7 @@
       if (!hasStarted) {
         unlockAudio();
         startNewRound();
+        primeAudioLikeReplay();
       }
     });
 
