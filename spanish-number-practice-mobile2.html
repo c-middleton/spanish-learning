@@ -521,9 +521,15 @@
     let audioUnlocked = false;
     let pendingSpeechText = null;
     let isSpeaking = false;
+    let lastUserGestureAt = 0;
+    let iosRetryTimer = null;
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    function markUserGesture() {
+      lastUserGestureAt = Date.now();
+    }
 
     function numberToSpanish(n) {
       const units = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
@@ -732,6 +738,7 @@
 
     function clearCycle() {
       if (timer) clearTimeout(timer);
+      if (iosRetryTimer) clearTimeout(iosRetryTimer);
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -783,13 +790,33 @@
 
         const utterance = buildUtterance(text);
 
+        if (isIOS) {
+          try {
+            window.speechSynthesis.speak(utterance);
+          } catch (e) {}
+
+          if (!isSpeaking) {
+            iosRetryTimer = setTimeout(() => {
+              if (!isPaused && spanishPhaseIsVisible() && audioToggle.checked && !isSpeaking) {
+                try {
+                  window.speechSynthesis.cancel();
+                  window.speechSynthesis.resume();
+                  window.speechSynthesis.speak(buildUtterance(text));
+                } catch (e) {}
+              }
+            }, 120);
+          }
+
+          return;
+        }
+
         requestAnimationFrame(() => {
           setTimeout(() => {
             try {
               window.speechSynthesis.resume();
               window.speechSynthesis.speak(utterance);
             } catch (e) {}
-          }, isIOS ? 30 : 0);
+          }, 0);
         });
       } catch (e) {}
     }
@@ -800,17 +827,7 @@
       try {
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
-
-        const utterance = buildUtterance(text);
-
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            try {
-              window.speechSynthesis.resume();
-              window.speechSynthesis.speak(utterance);
-            } catch (e) {}
-          }, isIOS ? 30 : 0);
-        });
+        window.speechSynthesis.speak(buildUtterance(text));
       } catch (e) {}
     }
 
@@ -823,32 +840,7 @@
       try {
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
-
-        const warmup = new SpeechSynthesisUtterance(' ');
-        const voice = getSelectedVoice();
-        warmup.lang = voice?.lang || 'es-ES';
-        warmup.rate = 1;
-        warmup.volume = 0;
-        if (voice) warmup.voice = voice;
-
-        warmup.onend = () => {
-          setTimeout(() => {
-            playPendingSpeech();
-          }, 50);
-        };
-
-        warmup.onerror = () => {
-          setTimeout(() => {
-            playPendingSpeech();
-          }, 50);
-        };
-
-        window.speechSynthesis.speak(warmup);
-      } catch (e) {
-        setTimeout(() => {
-          playPendingSpeech();
-        }, 50);
-      }
+      } catch (e) {}
     }
 
     function runCycle() {
@@ -887,11 +879,13 @@
     wordDurationInput.addEventListener('change', refreshDurationUI);
 
     newNumberBtn.addEventListener('click', () => {
+      markUserGesture();
       unlockAudio();
       startNewRound();
     });
 
     reverseBtn.addEventListener('click', () => {
+      markUserGesture();
       isReversed = !isReversed;
 
       if (hasStarted && !isPaused) {
@@ -917,6 +911,7 @@
     });
 
     pausePlayBtn.addEventListener('click', () => {
+      markUserGesture();
       unlockAudio();
 
       if (!hasStarted) {
@@ -936,12 +931,14 @@
     });
 
     applyTimingBtn.addEventListener('click', () => {
+      markUserGesture();
       unlockAudio();
       refreshDurationUI();
       if (hasStarted) runCycle();
     });
 
     audioToggle.addEventListener('change', () => {
+      markUserGesture();
       unlockAudio();
       updateAudioBadge();
 
@@ -954,6 +951,7 @@
     });
 
     replayBtn.addEventListener('click', () => {
+      markUserGesture();
       if (!spanishPhaseIsVisible() || !audioToggle.checked || !('speechSynthesis' in window)) return;
       unlockAudio();
       pendingSpeechText = null;
@@ -961,6 +959,7 @@
     });
 
     voiceSelect.addEventListener('change', () => {
+      markUserGesture();
       unlockAudio();
 
       if (!audioToggle.checked || !spanishPhaseIsVisible()) return;
@@ -983,15 +982,27 @@
     });
 
     displayBox.addEventListener('click', () => {
+      markUserGesture();
       if (!hasStarted) {
         unlockAudio();
         startNewRound();
       }
     });
 
-    document.addEventListener('pointerdown', unlockAudio, { once: true });
-    document.addEventListener('keydown', unlockAudio, { once: true });
-    document.addEventListener('touchstart', unlockAudio, { once: true });
+    document.addEventListener('pointerdown', () => {
+      markUserGesture();
+      unlockAudio();
+    }, { once: true });
+
+    document.addEventListener('keydown', () => {
+      markUserGesture();
+      unlockAudio();
+    }, { once: true });
+
+    document.addEventListener('touchstart', () => {
+      markUserGesture();
+      unlockAudio();
+    }, { once: true });
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && 'speechSynthesis' in window) {
