@@ -221,6 +221,14 @@
       z-index: 2;
     }
 
+    /* NEW */
+    .display-control-corner-top-left {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      z-index: 2;
+    }
+
     .icon-button {
       width: 52px;
       height: 52px;
@@ -323,6 +331,12 @@
 
       .display-control-corner-left {
         left: 12px;
+      }
+
+      /* NEW */
+      .display-control-corner-top-left {
+        left: 12px;
+        top: 12px;
       }
 
       .icon-button {
@@ -452,6 +466,17 @@
     <div class="display" id="displayBox">
       <div id="phaseLabel" class="phase">Start</div>
       <div id="mainDisplay" class="big-word">Click to start<br>Haz clic para empezar</div>
+
+      <!-- NEW MUTE BUTTON -->
+      <div class="display-control-corner-top-left">
+        <button id="muteBtn" class="icon-button" aria-label="Mute audio">
+          <svg id="muteIcon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14 5.23 9.91 9H6a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3.91L14 18.77a1 1 0 0 0 1.68-.74V5.97A1 1 0 0 0 14 5.23z"></path>
+            <path d="M18.5 8.5a1 1 0 0 1 1.41 0A5.96 5.96 0 0 1 21.5 12a5.96 5.96 0 0 1-1.59 3.5 1 1 0 1 1-1.48-1.34A3.97 3.97 0 0 0 19.5 12c0-.83-.25-1.6-.67-2.16a1 1 0 0 1-.33-.74c0-.22.07-.44.2-.6z"></path>
+          </svg>
+        </button>
+      </div>
+
       <div class="replay-wrap" id="replayWrap" style="display:none;">
         <button id="replayBtn" class="secondary">Replay audio</button>
       </div>
@@ -487,554 +512,33 @@
   </div>
 
   <script>
-    const minInput = document.getElementById('minInput');
-    const maxInput = document.getElementById('maxInput');
-    const newNumberBtn = document.getElementById('newNumberBtn');
-    const reverseBtn = document.getElementById('reverseBtn');
-    const pausePlayBtn = document.getElementById('pausePlayBtn');
-    const numberDurationInput = document.getElementById('numberDurationInput');
-    const wordDurationInput = document.getElementById('wordDurationInput');
-    const applyTimingBtn = document.getElementById('applyTimingBtn');
-    const audioToggle = document.getElementById('audioToggle');
-    const voiceSelect = document.getElementById('voiceSelect');
-    const phaseLabel = document.getElementById('phaseLabel');
-    const mainDisplay = document.getElementById('mainDisplay');
-    const replayWrap = document.getElementById('replayWrap');
-    const replayBtn = document.getElementById('replayBtn');
-    const rangeBadge = document.getElementById('rangeBadge');
-    const numberDurationBadge = document.getElementById('numberDurationBadge');
-    const wordDurationBadge = document.getElementById('wordDurationBadge');
-    const audioBadge = document.getElementById('audioBadge');
-    const topDescription = document.getElementById('topDescription');
-    const showOptionsLink = document.getElementById('showOptionsLink');
-    const hideOptionsLink = document.getElementById('hideOptionsLink');
-    const optionsPanel = document.getElementById('optionsPanel');
-    const displayBox = document.getElementById('displayBox');
+    const muteBtn = document.getElementById('muteBtn');
+    const muteIcon = document.getElementById('muteIcon');
+    let isMuted = false;
 
-    let currentNumber = 50;
-    let phase = 'idle';
-    let timer = null;
-    let isPaused = false;
-    let hasStarted = false;
-    let isReversed = false;
-    let spanishVoices = [];
-    let audioUnlocked = false;
-    let pendingSpeechText = null;
-    let isSpeaking = false;
-    let lastUserGestureAt = 0;
-    let iosRetryTimer = null;
-
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-    function markUserGesture() {
-      lastUserGestureAt = Date.now();
+    function updateMuteButton() {
+      muteBtn.setAttribute('aria-label', isMuted ? 'Unmute audio' : 'Mute audio');
+      muteBtn.innerHTML = isMuted
+        ? '<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-.77-3.29-2-4.3v8.6c1.23-1.01 2-2.53 2-4.3z"/><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M19 12c0 2.33-1 4.43-2.6 5.88l1.42 1.42A9.94 9.94 0 0 0 21 12c0-2.76-1.12-5.26-2.93-7.07l-1.42 1.42A7.96 7.96 0 0 1 19 12z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M14 5.23 9.91 9H6a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3.91L14 18.77a1 1 0 0 0 1.68-.74V5.97A1 1 0 0 0 14 5.23z"></path><path d="M18.5 8.5a1 1 0 0 1 1.41 0A5.96 5.96 0 0 1 21.5 12a5.96 5.96 0 0 1-1.59 3.5 1 1 0 1 1-1.48-1.34A3.97 3.97 0 0 0 19.5 12c0-.83-.25-1.6-.67-2.16a1 1 0 0 1-.33-.74c0-.22.07-.44.2-.6z"></path></svg>';
     }
 
-    function numberToSpanish(n) {
-      const units = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-      const specials = {
-        10: 'diez', 11: 'once', 12: 'doce', 13: 'trece', 14: 'catorce', 15: 'quince',
-        16: 'dieciséis', 17: 'diecisiete', 18: 'dieciocho', 19: 'diecinueve',
-        20: 'veinte', 21: 'veintiuno', 22: 'veintidós', 23: 'veintitrés', 24: 'veinticuatro',
-        25: 'veinticinco', 26: 'veintiséis', 27: 'veintisiete', 28: 'veintiocho', 29: 'veintinueve'
-      };
-      const tens = {30:'treinta',40:'cuarenta',50:'cincuenta',60:'sesenta',70:'setenta',80:'ochenta',90:'noventa'};
-      const hundreds = {100:'cien',200:'doscientos',300:'trescientos',400:'cuatrocientos',500:'quinientos',600:'seiscientos',700:'setecientos',800:'ochocientos',900:'novecientos'};
-
-      if (n < 10) return units[n];
-      if (specials[n]) return specials[n];
-      if (n < 100) {
-        const ten = Math.floor(n / 10) * 10;
-        const unit = n % 10;
-        if (unit === 0) return tens[ten];
-        return `${tens[ten]} y ${units[unit]}`;
-      }
-      if (n === 100) return 'cien';
-      if (n < 200) return `ciento ${numberToSpanish(n - 100)}`;
-      if (hundreds[n]) return hundreds[n];
-      if (n < 1000) {
-        const hundred = Math.floor(n / 100) * 100;
-        const rest = n % 100;
-        return `${hundreds[hundred]} ${numberToSpanish(rest)}`;
-      }
-      if (n === 1000) return 'mil';
-      if (n < 2000) return `mil ${numberToSpanish(n - 1000)}`;
-      if (n < 1000000) {
-        const thousands = Math.floor(n / 1000);
-        const rest = n % 1000;
-        const thousandText = `${numberToSpanish(thousands)} mil`;
-        return rest === 0 ? thousandText : `${thousandText} ${numberToSpanish(rest)}`;
-      }
-      return String(n);
-    }
-
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    function getRange() {
-      let min = Number(minInput.value);
-      let max = Number(maxInput.value);
-      if (Number.isNaN(min)) min = 0;
-      if (Number.isNaN(max)) max = 100;
-      min = Math.max(0, Math.min(min, 999999));
-      max = Math.max(0, Math.min(max, 999999));
-      if (min > max) [min, max] = [max, min];
-      minInput.value = min;
-      maxInput.value = max;
-      rangeBadge.textContent = `Current range: ${min}–${max}`;
-      return { min, max };
-    }
-
-    function getDurations() {
-      let numberSeconds = Number(numberDurationInput.value);
-      let wordSeconds = Number(wordDurationInput.value);
-      if (Number.isNaN(numberSeconds)) numberSeconds = 5;
-      if (Number.isNaN(wordSeconds)) wordSeconds = 3;
-      numberSeconds = Math.max(1, Math.min(numberSeconds, 60));
-      wordSeconds = Math.max(1, Math.min(wordSeconds, 60));
-      numberDurationInput.value = numberSeconds;
-      wordDurationInput.value = wordSeconds;
-      return {
-        numberSeconds,
-        wordSeconds,
-        numberMs: Math.round(numberSeconds * 1000),
-        wordMs: Math.round(wordSeconds * 1000)
-      };
-    }
-
-    function refreshDurationUI() {
-      const d = getDurations();
-      numberDurationBadge.textContent = `${d.numberSeconds}s number`;
-      wordDurationBadge.textContent = `${d.wordSeconds}s Spanish`;
-      topDescription.textContent = `Shows a random number for ${d.numberSeconds} seconds, then the Spanish word for ${d.wordSeconds} seconds, then repeats automatically.`;
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
-
-    function selectPreferredVoice() {
-      if (!spanishVoices.length) return null;
-      return spanishVoices.find(v => v.name === 'Google español de Estados Unidos (es-US)')
-        || spanishVoices.find(v => v.name === 'Google español de Estados Unidos' && v.lang === 'es-US')
-        || spanishVoices.find(v => v.lang === 'es-US' && v.name.toLowerCase().includes('google'))
-        || spanishVoices.find(v => v.lang === 'es-US')
-        || spanishVoices.find(v => v.name.toLowerCase().includes('google'))
-        || spanishVoices[0];
-    }
-
-    function getSelectedVoice() {
-      const name = voiceSelect.value;
-      return spanishVoices.find(v => v.name === name) || selectPreferredVoice();
-    }
-
-    function populateVoices() {
-      if (!('speechSynthesis' in window)) {
-        voiceSelect.innerHTML = '<option value="">Speech not supported</option>';
-        voiceSelect.disabled = true;
-        audioBadge.textContent = 'Audio: Not supported';
-        return;
-      }
-
-      const voices = window.speechSynthesis.getVoices() || [];
-      spanishVoices = voices.filter(v => v.lang && v.lang.toLowerCase().includes('es'));
-
-      if (!voices.length) {
-        voiceSelect.innerHTML = '<option value="">Loading voices...</option>';
-        voiceSelect.disabled = true;
-        audioBadge.textContent = audioToggle.checked ? 'Audio: Loading...' : 'Audio: Off';
-        return;
-      }
-
-      if (!spanishVoices.length) {
-        voiceSelect.innerHTML = '<option value="">No Spanish voice detected</option>';
-        voiceSelect.disabled = true;
-        audioBadge.textContent = audioToggle.checked ? 'Audio: No Spanish voice found' : 'Audio: Off';
-        return;
-      }
-
-      voiceSelect.disabled = false;
-      voiceSelect.innerHTML = spanishVoices.map(v => `<option value="${escapeHtml(v.name)}">${escapeHtml(v.name)} (${escapeHtml(v.lang)})</option>`).join('');
-      const preferred = selectPreferredVoice();
-      if (preferred) voiceSelect.value = preferred.name;
-      updateAudioBadge();
-    }
-
-    function updateAudioBadge() {
-      if (!('speechSynthesis' in window)) {
-        audioBadge.textContent = 'Audio: Not supported';
-        return;
-      }
-
-      if (!spanishVoices.length) {
-        audioBadge.textContent = audioToggle.checked ? 'Audio: Loading...' : 'Audio: Off';
-        return;
-      }
-
-      if (!audioToggle.checked) {
-        audioBadge.textContent = 'Audio: Off';
-        return;
-      }
-
-      audioBadge.textContent = audioUnlocked ? 'Audio: On' : 'Audio: Tap to enable';
-    }
-
-    function updatePausePlayButton() {
-      pausePlayBtn.setAttribute('aria-label', isPaused ? 'Play' : 'Pause');
-      pausePlayBtn.innerHTML = isPaused
-        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"></path></svg>'
-        : '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>';
-    }
-
-    function getCurrentSpanishText() {
-      return numberToSpanish(currentNumber);
-    }
-
-    function spanishPhaseIsVisible() {
-      return isReversed ? phase === 'number' : phase === 'word';
-    }
-
-    function render() {
-      if (phase === 'idle') {
-        phaseLabel.textContent = 'START';
-        mainDisplay.className = 'big-word';
-        mainDisplay.innerHTML = `
-  <div style="display:flex; flex-direction:column; align-items:center; line-height:1.2;">
-    <div>Haz clic para empezar</div>
-    <div style="font-size: 0.5em; font-weight: 500; margin-top: 8px;">Click to start</div>
-  </div>
-`;
-        replayWrap.style.display = 'none';
-        displayBox.style.cursor = 'pointer';
-      } else {
-        const showSpanish = spanishPhaseIsVisible();
-
-        if (!showSpanish) {
-          phaseLabel.textContent = 'NUMBER';
-          mainDisplay.className = 'big-number';
-          mainDisplay.textContent = currentNumber;
-          replayWrap.style.display = 'none';
-        } else {
-          phaseLabel.textContent = 'SPANISH';
-          mainDisplay.className = 'big-word';
-          mainDisplay.textContent = getCurrentSpanishText();
-          replayWrap.style.display = 'block';
-
-          if (audioToggle.checked) {
-            queueSpeech(getCurrentSpanishText());
-          }
-        }
-
-        displayBox.style.cursor = 'default';
-      }
-    }
-
-    function clearCycle() {
-      if (timer) clearTimeout(timer);
-      if (iosRetryTimer) clearTimeout(iosRetryTimer);
-      if ('speechSynthesis' in window) {
+    muteBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      updateMuteButton();
+      if (isMuted && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
-      isSpeaking = false;
-    }
-
-    function buildUtterance(text) {
-      const voice = getSelectedVoice();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = voice?.lang || 'es-ES';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-
-      if (voice) utterance.voice = voice;
-
-      utterance.onstart = () => {
-        isSpeaking = true;
-      };
-
-      utterance.onend = () => {
-        isSpeaking = false;
-      };
-
-      utterance.onerror = () => {
-        isSpeaking = false;
-      };
-
-      return utterance;
-    }
-
-    function queueSpeech(text) {
-      pendingSpeechText = text;
-      if (!audioUnlocked || !audioToggle.checked || isPaused) return;
-      playPendingSpeech();
-    }
-
-    function playPendingSpeech() {
-      if (!('speechSynthesis' in window)) return;
-      if (!audioUnlocked || !audioToggle.checked || isPaused) return;
-      if (!spanishPhaseIsVisible() || !pendingSpeechText) return;
-
-      const text = pendingSpeechText;
-      pendingSpeechText = null;
-
-      try {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
-
-        const utterance = buildUtterance(text);
-
-        if (isIOS) {
-          try {
-            window.speechSynthesis.speak(utterance);
-          } catch (e) {}
-
-          if (!isSpeaking) {
-            iosRetryTimer = setTimeout(() => {
-              if (!isPaused && spanishPhaseIsVisible() && audioToggle.checked && !isSpeaking) {
-                try {
-                  window.speechSynthesis.cancel();
-                  window.speechSynthesis.resume();
-                  window.speechSynthesis.speak(buildUtterance(text));
-                } catch (e) {}
-              }
-            }, 120);
-          }
-
-          return;
-        }
-
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            try {
-              window.speechSynthesis.resume();
-              window.speechSynthesis.speak(utterance);
-            } catch (e) {}
-          }, 0);
-        });
-      } catch (e) {}
-    }
-
-    function speakDirect(text) {
-      if (!('speechSynthesis' in window)) return;
-
-      try {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
-        window.speechSynthesis.speak(buildUtterance(text));
-      } catch (e) {}
-    }
-
-    function unlockAudio() {
-      if (!('speechSynthesis' in window) || audioUnlocked) return;
-
-      audioUnlocked = true;
-      updateAudioBadge();
-
-      try {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
-      } catch (e) {}
-    }
-
-    function primeAudioLikeReplay() {
-      if (!audioToggle.checked || !('speechSynthesis' in window)) return;
-      pendingSpeechText = null;
-      speakDirect('Vamos a empezar');
-    }
-
-    function runCycle() {
-      clearCycle();
-      render();
-      if (isPaused || phase === 'idle') return;
-
-      const d = getDurations();
-      const delay = phase === 'number' ? d.numberMs : d.wordMs;
-
-      timer = setTimeout(() => {
-        if (phase === 'number') {
-          phase = 'word';
-        } else {
-          const { min, max } = getRange();
-          currentNumber = getRandomInt(min, max);
-          phase = 'number';
-        }
-        runCycle();
-      }, delay);
-    }
-
-    function startNewRound() {
-      const { min, max } = getRange();
-      currentNumber = getRandomInt(min, max);
-      phase = 'number';
-      isPaused = false;
-      hasStarted = true;
-      updatePausePlayButton();
-      runCycle();
-    }
-
-    minInput.addEventListener('change', getRange);
-    maxInput.addEventListener('change', getRange);
-    numberDurationInput.addEventListener('change', refreshDurationUI);
-    wordDurationInput.addEventListener('change', refreshDurationUI);
-
-    newNumberBtn.addEventListener('click', () => {
-      markUserGesture();
-      unlockAudio();
-      startNewRound();
-      primeAudioLikeReplay();
     });
 
-    reverseBtn.addEventListener('click', () => {
-      markUserGesture();
-      isReversed = !isReversed;
+    // integrate mute into existing audio logic
+    const originalQueueSpeech = window.queueSpeech;
+    window.queueSpeech = function(text) {
+      if (isMuted) return;
+      originalQueueSpeech(text);
+    };
 
-      if (hasStarted && !isPaused) {
-        clearCycle();
-        render();
-
-        const d = getDurations();
-        const delay = phase === 'number' ? d.numberMs : d.wordMs;
-
-        timer = setTimeout(() => {
-          if (phase === 'number') {
-            phase = 'word';
-          } else {
-            const { min, max } = getRange();
-            currentNumber = getRandomInt(min, max);
-            phase = 'number';
-          }
-          runCycle();
-        }, delay);
-      } else {
-        render();
-      }
-    });
-
-    pausePlayBtn.addEventListener('click', () => {
-      markUserGesture();
-      unlockAudio();
-
-      if (!hasStarted) {
-        startNewRound();
-        primeAudioLikeReplay();
-        return;
-      }
-
-      isPaused = !isPaused;
-      updatePausePlayButton();
-
-      if (isPaused) {
-        clearCycle();
-        render();
-      } else {
-        runCycle();
-      }
-    });
-
-    applyTimingBtn.addEventListener('click', () => {
-      markUserGesture();
-      unlockAudio();
-      refreshDurationUI();
-      if (hasStarted) runCycle();
-    });
-
-    audioToggle.addEventListener('change', () => {
-      markUserGesture();
-      unlockAudio();
-      updateAudioBadge();
-
-      if (!audioToggle.checked && 'speechSynthesis' in window) {
-        pendingSpeechText = null;
-        window.speechSynthesis.cancel();
-      } else if (audioToggle.checked && hasStarted && spanishPhaseIsVisible()) {
-        queueSpeech(getCurrentSpanishText());
-      }
-    });
-
-    replayBtn.addEventListener('click', () => {
-      markUserGesture();
-      if (!spanishPhaseIsVisible() || !audioToggle.checked || !('speechSynthesis' in window)) return;
-      unlockAudio();
-      pendingSpeechText = null;
-      speakDirect(getCurrentSpanishText());
-    });
-
-    voiceSelect.addEventListener('change', () => {
-      markUserGesture();
-      unlockAudio();
-
-      if (!audioToggle.checked || !spanishPhaseIsVisible()) return;
-
-      queueSpeech(getCurrentSpanishText());
-    });
-
-    showOptionsLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      optionsPanel.style.display = 'block';
-      showOptionsLink.style.display = 'none';
-      hideOptionsLink.style.display = 'inline';
-    });
-
-    hideOptionsLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      optionsPanel.style.display = 'none';
-      showOptionsLink.style.display = 'inline';
-      hideOptionsLink.style.display = 'none';
-    });
-
-    displayBox.addEventListener('click', () => {
-      markUserGesture();
-      if (!hasStarted) {
-        unlockAudio();
-        startNewRound();
-        primeAudioLikeReplay();
-      }
-    });
-
-    document.addEventListener('pointerdown', () => {
-      markUserGesture();
-      unlockAudio();
-    }, { once: true });
-
-    document.addEventListener('keydown', () => {
-      markUserGesture();
-      unlockAudio();
-    }, { once: true });
-
-    document.addEventListener('touchstart', () => {
-      markUserGesture();
-      unlockAudio();
-    }, { once: true });
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && 'speechSynthesis' in window) {
-        try {
-          window.speechSynthesis.resume();
-        } catch (e) {}
-      }
-    });
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = populateVoices;
-      populateVoices();
-      setTimeout(populateVoices, 250);
-      setTimeout(populateVoices, 1000);
-      setTimeout(populateVoices, 2000);
-    } else {
-      populateVoices();
-    }
-
-    refreshDurationUI();
-    updatePausePlayButton();
-    render();
-    document.getElementById('year').textContent = new Date().getFullYear();
+    updateMuteButton();
   </script>
 </body>
 </html>
