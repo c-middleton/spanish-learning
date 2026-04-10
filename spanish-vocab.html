@@ -291,14 +291,35 @@
       white-space: nowrap;
     }
 
+    .options-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .category-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #334155;
+      font-size: 0.92rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
     #optionsMeta select {
-      width: 100%;
+      width: auto;
+      min-width: 180px;
       max-width: 280px;
-      padding: 12px 14px;
+      height: 34px;
+      padding: 0 14px;
       border: 1px solid #cbd5e1;
-      border-radius: 14px;
+      border-radius: 999px;
       background: white;
       color: #0f172a;
+      line-height: 34px;
     }
 
     .footer {
@@ -386,13 +407,29 @@
         line-height: 1;
       }
 
-      #replayWrap {
-        bottom: 12px;
-        max-width: calc(100% - 104px);
+      .options-meta-row {
+        display: block;
+        margin-top: 12px;
+      }
+
+      .category-control {
+        display: block;
       }
 
       #optionsMeta select {
+        width: 100%;
         max-width: 100%;
+        min-width: 0;
+        height: 48px;
+        padding: 0 14px;
+        border-radius: 14px;
+        line-height: 48px;
+        margin-top: 8px;
+      }
+
+      #replayWrap {
+        bottom: 12px;
+        max-width: calc(100% - 104px);
       }
     }
 
@@ -442,7 +479,7 @@
         </div>
 
         <div class="field info-card">
-          <label>Current tab</label>
+          <label>Current category</label>
           <div class="info-value" id="currentTabValue">Loading...</div>
         </div>
 
@@ -523,18 +560,20 @@
     </div>
 
     <div id="optionsMeta">
-      <div class="badges">
-        <div class="badge" id="englishDurationBadge">5s English</div>
-        <div class="badge" id="spanishDurationBadge">5s Spanish</div>
-        <div class="badge" id="rowsBadge">Rows: Loading...</div>
-        <div class="badge" id="audioBadge">Audio: On</div>
-      </div>
+      <div class="options-meta-row">
+        <div class="badges">
+          <div class="badge" id="englishDurationBadge">5s English</div>
+          <div class="badge" id="spanishDurationBadge">5s Spanish</div>
+          <div class="badge" id="rowsBadge">Rows: Loading...</div>
+          <div class="badge" id="audioBadge">Audio: On</div>
+        </div>
 
-      <div style="margin-top: 12px;">
-        <label for="tabSelect" style="display:block; margin-bottom:8px; font-size:0.92rem; font-weight:600; color:#334155;">Tab</label>
-        <select id="tabSelect">
-          <option value="">Loading tabs...</option>
-        </select>
+        <label class="category-control" for="tabSelect">
+          <span>Category</span>
+          <select id="tabSelect">
+            <option value="">Loading tabs...</option>
+          </select>
+        </label>
       </div>
     </div>
 
