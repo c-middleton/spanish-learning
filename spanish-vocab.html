@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Spanish Food Practice</title>
+  <title>Spanish Vocabulary Practice</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -406,7 +406,7 @@
 </head>
 <body>
   <div class="app">
-    <h1>Spanish Food Practice</h1>
+    <h1>Spanish Vocabulary Practice</h1>
     <p class="sub" id="topDescription">Shows a random English phrase for 5 seconds, then the Spanish phrase for 5 seconds, then repeats automatically.</p>
 
     <div style="margin: -8px 0 24px;">
@@ -416,9 +416,11 @@
 
     <div id="optionsPanel" style="display: none;">
       <div class="controls">
-        <div class="field info-card">
-          <label>Sheet tab</label>
-          <div class="info-value" id="sheetTabValue">Food</div>
+        <div class="field">
+          <label for="tabSelect">Tab</label>
+          <select id="tabSelect">
+            <option value="">Loading tabs...</option>
+          </select>
         </div>
 
         <div class="field info-card">
@@ -508,7 +510,7 @@
         <div class="badge" id="spanishDurationBadge">5s Spanish</div>
         <div class="badge" id="rowsBadge">Rows: Loading...</div>
         <div class="badge" id="audioBadge">Audio: On</div>
-        <div class="badge" id="tabBadge">Tab: Food</div>
+        <div class="badge" id="tabBadge">Tab: Loading...</div>
       </div>
     </div>
 
@@ -518,9 +520,7 @@
   </div>
 
   <script>
-    const SHEET_ID = '1NwBIr-yZMtHM3UW9xqqLYEL4rps-agoXoiVK3fAbBx8';
-    const SHEET_TAB = 'Food';
-    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_TAB)}&tq=&tqx=out:json`;
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbwxLuqY66rTHX9bf9LxZ4UaOXPQb4dQIIILd73gEs0o3LuDFxKJJwqevteRwZBJP8DMLg/exec';
 
     const newPhraseBtn = document.getElementById('newPhraseBtn');
     const reverseBtn = document.getElementById('reverseBtn');
@@ -545,9 +545,10 @@
     const optionsPanel = document.getElementById('optionsPanel');
     const displayBox = document.getElementById('displayBox');
     const loadedRowsValue = document.getElementById('loadedRowsValue');
-    const sheetTabValue = document.getElementById('sheetTabValue');
+    const tabSelect = document.getElementById('tabSelect');
     const muteBtn = document.getElementById('muteBtn');
 
+    let availableTabs = [];
     let rows = [];
     let currentRow = null;
     let phase = 'idle';
@@ -561,65 +562,102 @@
     let isSpeaking = false;
     let iosRetryTimer = null;
     let isMuted = false;
+    let currentTab = '';
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    sheetTabValue.textContent = SHEET_TAB;
-    tabBadge.textContent = `Tab: ${SHEET_TAB}`;
-
-    function getCellText(cell) {
-      if (cell == null) return '';
-      if (typeof cell.v === 'string' || typeof cell.v === 'number' || typeof cell.v === 'boolean') {
-        return String(cell.v).trim();
-      }
-      if (cell.f) return String(cell.f).trim();
-      return '';
-    }
-
-    async function loadRows() {
+    async function loadTabs() {
+      tabSelect.innerHTML = '<option value="">Loading tabs...</option>';
+      tabSelect.disabled = true;
       loadedRowsValue.textContent = 'Loading...';
       rowsBadge.textContent = 'Rows: Loading...';
+      tabBadge.textContent = 'Tab: Loading...';
 
       try {
-        const res = await fetch(GVIZ_URL, { cache: 'no-store' });
-        const text = await res.text();
+        const res = await fetch(`${API_BASE}?action=tabs`, { cache: 'no-store' });
+        const data = await res.json();
 
-        const jsonText = text
-          .replace(/^\/\*O_o\*\/\s*/, '')
-          .replace(/^google\.visualization\.Query\.setResponse\(/, '')
-          .replace(/\);\s*$/, '');
+        if (!data.ok || !Array.isArray(data.tabs) || !data.tabs.length) {
+          throw new Error('Unable to load tabs');
+        }
 
-        const data = JSON.parse(jsonText);
-        const rawRows = data?.table?.rows || [];
+        availableTabs = data.tabs;
+        tabSelect.innerHTML = availableTabs
+          .map(tab => `<option value="${escapeHtml(tab)}">${escapeHtml(tab)}</option>`)
+          .join('');
+        tabSelect.disabled = false;
 
-        const parsed = rawRows
-          .map((row, index) => {
-            const english = getCellText(row.c?.[0]);
-            const spanish = getCellText(row.c?.[1]);
-            return { english, spanish, index };
-          })
-          .filter((row, index) => index > 0)
+        const preferredTab = availableTabs.includes('Food') ? 'Food' : availableTabs[0];
+        tabSelect.value = preferredTab;
+        currentTab = preferredTab;
+        tabBadge.textContent = `Tab: ${currentTab}`;
+
+        await loadRowsForTab(currentTab);
+      } catch (err) {
+        availableTabs = [];
+        tabSelect.innerHTML = '<option value="">Unable to load tabs</option>';
+        loadedRowsValue.textContent = 'Error';
+        rowsBadge.textContent = 'Rows: Error';
+        tabBadge.textContent = 'Tab: Error';
+        phase = 'idle';
+        mainDisplay.className = 'big-word';
+        mainDisplay.innerHTML = 'Unable to load sheet tabs<br><span style="font-size:0.55em;font-weight:500;">Check your Apps Script deployment and permissions</span>';
+        phaseLabel.textContent = 'ERROR';
+      }
+    }
+
+    async function loadRowsForTab(tabName) {
+      currentTab = tabName;
+      tabBadge.textContent = `Tab: ${currentTab}`;
+      loadedRowsValue.textContent = 'Loading...';
+      rowsBadge.textContent = 'Rows: Loading...';
+      rows = [];
+      currentRow = null;
+      clearCycle();
+
+      try {
+        const res = await fetch(`${API_BASE}?action=rows&tab=${encodeURIComponent(tabName)}`, { cache: 'no-store' });
+        const data = await res.json();
+
+        if (!data.ok || !Array.isArray(data.rows)) {
+          throw new Error('Unable to load rows');
+        }
+
+        rows = data.rows
+          .map((row, index) => ({
+            english: String(row.english ?? '').trim(),
+            spanish: String(row.spanish ?? '').trim(),
+            index
+          }))
           .filter(row => row.english && row.spanish);
 
-        rows = parsed;
         loadedRowsValue.textContent = String(rows.length);
         rowsBadge.textContent = `Rows: ${rows.length}`;
 
         if (!rows.length) {
           phase = 'idle';
           mainDisplay.className = 'big-word';
-          mainDisplay.innerHTML = 'No usable rows found<br><span style="font-size:0.55em;font-weight:500;">Check that Food has values in columns A and B</span>';
+          mainDisplay.innerHTML = 'No usable rows found<br><span style="font-size:0.55em;font-weight:500;">Make sure the selected tab has values in columns A and B</span>';
           phaseLabel.textContent = 'ERROR';
+          replayWrap.style.display = 'none';
+          hasStarted = false;
+          return;
         }
+
+        phase = 'idle';
+        hasStarted = false;
+        render();
       } catch (err) {
         rows = [];
         loadedRowsValue.textContent = 'Error';
         rowsBadge.textContent = 'Rows: Error';
         phase = 'idle';
         mainDisplay.className = 'big-word';
-        mainDisplay.innerHTML = 'Unable to load sheet data<br><span style="font-size:0.55em;font-weight:500;">Make sure the sheet is published and shared correctly</span>';
+        mainDisplay.innerHTML = 'Unable to load tab data<br><span style="font-size:0.55em;font-weight:500;">Check your Apps Script endpoint</span>';
         phaseLabel.textContent = 'ERROR';
+        replayWrap.style.display = 'none';
+        hasStarted = false;
       }
     }
 
@@ -661,7 +699,7 @@
       const d = getDurations();
       englishDurationBadge.textContent = `${d.englishSeconds}s English`;
       spanishDurationBadge.textContent = `${d.spanishSeconds}s Spanish`;
-      topDescription.textContent = `Shows a random ${isReversed ? 'Spanish' : 'English'} phrase for ${isReversed ? d.spanishSeconds : d.englishSeconds} seconds, then the ${isReversed ? 'English' : 'Spanish'} phrase for ${isReversed ? d.englishSeconds : d.spanishSeconds} seconds, then repeats automatically.`;
+      topDescription.textContent = `Shows a random English phrase for ${d.englishSeconds} seconds, then the Spanish phrase for ${d.spanishSeconds} seconds, then repeats automatically.`;
     }
 
     function escapeHtml(str) {
@@ -1079,6 +1117,18 @@
       queueSpeech(getCurrentSpanishText());
     });
 
+    tabSelect.addEventListener('change', async () => {
+      const selected = tabSelect.value;
+      if (!selected || selected === currentTab) return;
+
+      hasStarted = false;
+      isPaused = false;
+      phase = 'idle';
+      updatePausePlayButton();
+      await loadRowsForTab(selected);
+      render();
+    });
+
     showOptionsLink.addEventListener('click', (e) => {
       e.preventDefault();
       optionsPanel.style.display = 'block';
@@ -1129,7 +1179,7 @@
     render();
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    loadRows();
+    loadTabs();
   </script>
 </body>
 </html>
