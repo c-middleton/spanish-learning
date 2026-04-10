@@ -416,16 +416,14 @@
 
     <div id="optionsPanel" style="display: none;">
       <div class="controls">
-        <div class="field">
-          <label for="tabSelect">Tab</label>
-          <select id="tabSelect">
-            <option value="">Loading tabs...</option>
-          </select>
-        </div>
-
         <div class="field info-card">
           <label>Loaded rows</label>
           <div class="info-value" id="loadedRowsValue">Loading...</div>
+        </div>
+
+        <div class="field info-card">
+          <label>Current tab</label>
+          <div class="info-value" id="currentTabValue">Loading...</div>
         </div>
 
         <div class="field">
@@ -510,7 +508,13 @@
         <div class="badge" id="spanishDurationBadge">5s Spanish</div>
         <div class="badge" id="rowsBadge">Rows: Loading...</div>
         <div class="badge" id="audioBadge">Audio: On</div>
-        <div class="badge" id="tabBadge">Tab: Loading...</div>
+
+        <label class="badge" for="tabSelect" style="display:flex; align-items:center; gap:10px; padding:6px 10px;">
+          <span style="white-space:nowrap;">Tab:</span>
+          <select id="tabSelect" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:999px; background:white; color:#0f172a; min-height:36px; width:auto; max-width:220px;">
+            <option value="">Loading tabs...</option>
+          </select>
+        </label>
       </div>
     </div>
 
@@ -538,13 +542,13 @@
     const spanishDurationBadge = document.getElementById('spanishDurationBadge');
     const rowsBadge = document.getElementById('rowsBadge');
     const audioBadge = document.getElementById('audioBadge');
-    const tabBadge = document.getElementById('tabBadge');
     const topDescription = document.getElementById('topDescription');
     const showOptionsLink = document.getElementById('showOptionsLink');
     const hideOptionsLink = document.getElementById('hideOptionsLink');
     const optionsPanel = document.getElementById('optionsPanel');
     const displayBox = document.getElementById('displayBox');
     const loadedRowsValue = document.getElementById('loadedRowsValue');
+    const currentTabValue = document.getElementById('currentTabValue');
     const tabSelect = document.getElementById('tabSelect');
     const muteBtn = document.getElementById('muteBtn');
 
@@ -571,8 +575,8 @@
       tabSelect.innerHTML = '<option value="">Loading tabs...</option>';
       tabSelect.disabled = true;
       loadedRowsValue.textContent = 'Loading...';
+      currentTabValue.textContent = 'Loading...';
       rowsBadge.textContent = 'Rows: Loading...';
-      tabBadge.textContent = 'Tab: Loading...';
 
       try {
         const res = await fetch(`${API_BASE}?action=tabs`, { cache: 'no-store' });
@@ -591,15 +595,15 @@
         const preferredTab = availableTabs.includes('Food') ? 'Food' : availableTabs[0];
         tabSelect.value = preferredTab;
         currentTab = preferredTab;
-        tabBadge.textContent = `Tab: ${currentTab}`;
+        currentTabValue.textContent = currentTab;
 
         await loadRowsForTab(currentTab);
       } catch (err) {
         availableTabs = [];
         tabSelect.innerHTML = '<option value="">Unable to load tabs</option>';
         loadedRowsValue.textContent = 'Error';
+        currentTabValue.textContent = 'Error';
         rowsBadge.textContent = 'Rows: Error';
-        tabBadge.textContent = 'Tab: Error';
         phase = 'idle';
         mainDisplay.className = 'big-word';
         mainDisplay.innerHTML = 'Unable to load sheet tabs<br><span style="font-size:0.55em;font-weight:500;">Check your Apps Script deployment and permissions</span>';
@@ -609,7 +613,7 @@
 
     async function loadRowsForTab(tabName) {
       currentTab = tabName;
-      tabBadge.textContent = `Tab: ${currentTab}`;
+      currentTabValue.textContent = currentTab;
       loadedRowsValue.textContent = 'Loading...';
       rowsBadge.textContent = 'Rows: Loading...';
       rows = [];
@@ -652,6 +656,7 @@
         rows = [];
         loadedRowsValue.textContent = 'Error';
         rowsBadge.textContent = 'Rows: Error';
+        currentTabValue.textContent = 'Error';
         phase = 'idle';
         mainDisplay.className = 'big-word';
         mainDisplay.innerHTML = 'Unable to load tab data<br><span style="font-size:0.55em;font-weight:500;">Check your Apps Script endpoint</span>';
