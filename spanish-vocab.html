@@ -274,6 +274,7 @@
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 18px;
+      align-items: center;
     }
 
     .badge {
@@ -283,6 +284,21 @@
       border-radius: 999px;
       color: #475569;
       font-size: 0.92rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      white-space: nowrap;
+    }
+
+    #optionsMeta select {
+      width: 100%;
+      max-width: 280px;
+      padding: 12px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      background: white;
+      color: #0f172a;
     }
 
     .footer {
@@ -373,6 +389,10 @@
       #replayWrap {
         bottom: 12px;
         max-width: calc(100% - 104px);
+      }
+
+      #optionsMeta select {
+        max-width: 100%;
       }
     }
 
@@ -508,13 +528,13 @@
         <div class="badge" id="spanishDurationBadge">5s Spanish</div>
         <div class="badge" id="rowsBadge">Rows: Loading...</div>
         <div class="badge" id="audioBadge">Audio: On</div>
+      </div>
 
-        <label class="badge" for="tabSelect" style="display:flex; align-items:center; gap:10px; padding:6px 10px;">
-          <span style="white-space:nowrap;">Tab:</span>
-          <select id="tabSelect" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:999px; background:white; color:#0f172a; min-height:36px; width:auto; max-width:220px;">
-            <option value="">Loading tabs...</option>
-          </select>
-        </label>
+      <div style="margin-top: 12px;">
+        <label for="tabSelect" style="display:block; margin-bottom:8px; font-size:0.92rem; font-weight:600; color:#334155;">Tab</label>
+        <select id="tabSelect">
+          <option value="">Loading tabs...</option>
+        </select>
       </div>
     </div>
 
